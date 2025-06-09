@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🔥 Funk Player - User Panel</title>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #000;
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    h2 {
+      text-align: center;
+      padding: 15px 10px 0;
+      color: #f44336;
+      user-select: none;
+    }
+
+    #current-player {
+      background: #111;
+      border-bottom: 2px solid #2196f3;
+      padding: 20px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    #current-player img {
+      width: 100%;
+      max-width: 300px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px #f44336cc;
+      margin-bottom: 10px;
+      user-select: none;
+    }
+    #current-player h3 {
+      margin: 8px 0 12px;
+      font-size: 1.5rem;
+      color: #f44336;
+    }
+
+    audio {
+      width: 100%;
+      outline: none;
+      border-radius: 10px;
+      background: #222;
+      box-shadow: 0 0 15px #2196f3cc;
+      cursor: pointer;
+    }
+
+    #playlist {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 15px 10px 70px; /* Adjusted padding-bottom to account for queue container */
+    }
+
+    .song-item {
+      display: flex;
+      align-items: center;
+      background: #121212;
+      border: 1px solid #222;
+      margin: 8px 0;
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .song-item:hover {
+      background: #222;
+    }
+    .song-item img {
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-right: 15px;
+      user-select: none;
+      box-shadow: 0 0 8px #2196f3aa;
+    }
+    .song-item .title {
+      flex-grow: 1;
+      font-weight: 600;
+      color: #f44336;
+      user-select: none;
+    }
+    .song-item .add-btn {
+      background: #2196f3;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+    .song-item .add-btn:hover {
+      background: #1976d2;
+    }
+
+    #queue-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #111;
+      border-top: 2px solid #f44336;
+      padding: 10px 20px;
+      box-shadow: 0 -2px 15px #f4433688;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1001;
+    }
+
+    #queue-list {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      flex-grow: 1;
+    }
+    #queue-list .queue-song {
+      background: #222;
+      padding: 5px 10px;
+      border-radius: 8px;
+      color: #eee;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      border: 2px solid transparent;
+    }
+    #queue-list .queue-song.active {
+      border-color: #f44336;
+      background: #f4433688;
+      color: #fff;
+    }
+    #queue-list .queue-song:hover {
+      background: #333;
+    }
+
+    #repeat-toggle {
+      margin-left: 15px;
+      background: #2196f3;
+      border: none;
+      color: white;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 25px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      flex-shrink: 0;
+    }
+    #repeat-toggle.active {
+      background: #f44336;
+    }
+    #repeat-toggle:hover {
+      background: #1976d2;
+    }
+
+    #playlist::-webkit-scrollbar {
+      width: 8px;
+    }
+    #playlist::-webkit-scrollbar-thumb {
+      background: #2196f3aa;
+      border-radius: 10px;
+    }
+
+    .ad-container {
+      text-align: center;
+      margin: 10px auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 🔝 Top Ad -->
+  <div class="ad-container">
+    <script type="text/javascript">
+      atOptions = {
+        'key': '9edad7da99dad48791a73ad91440bc3c',
+        'format': 'iframe',
+        'height': 50,
+        'width': 320,
+        'params': {}
+      };
+    </script>
+    <script type="text/javascript" src="//www.highperformanceformat.com/9edad7da99dad48791a73ad91440bc3c/invoke.js"></script>
+  </div>
+
+  <h2>FUNKS PLAYER</h2>
+
+  <section id="current-player">
+    <img id="current-image" src="" alt="Current Song Image" />
+    <h3 id="current-title">Select a song to play</h3>
+    <audio id="audio-player" controls></audio>
+  </section>
+
+  <section id="playlist"></section>
+
+  <section id="queue-container">
+    <div id="queue-list"></div>
+    <button id="repeat-toggle">Repeat All: OFF</button>
+  </section>
+
+  <script>
+    // ❗ IMPORTANT: Replace this with YOUR Firebase project configuration!
+    const firebaseConfig = {
+  apiKey: "AIzaSyBSfmIVJvtcb7WppzMoT_Iz2zp-tYh--Z8",
+  authDomain: "fffunksplayer.firebaseapp.com",
+  databaseURL: "https://fffunksplayer-default-rtdb.firebaseio.com",
+  projectId: "fffunksplayer",
+  storageBucket: "fffunksplayer.firebasestorage.app",
+  messagingSenderId: "157242711921",
+  appId: "1:157242711921:web:0e054e541439842c3320d0",
+  measurementId: "G-ERR0M9NS69"
+};
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const playlistEl = document.getElementById('playlist');
+    const currentTitleEl = document.getElementById('current-title');
+    const currentImageEl = document.getElementById('current-image');
+    const audioPlayer = document.getElementById('audio-player');
+    const queueListEl = document.getElementById('queue-list');
+    const repeatToggleBtn = document.getElementById('repeat-toggle');
+
+    let allSongs = {};
+    let queue = [];
+    let currentIndex = -1;
+    let repeatAll = false;
+
+    function loadSongs() {
+      // Listen for data changes at the 'songs' path in your Firebase Realtime Database
+      db.ref('songs').on('value', (snapshot) => {
+        allSongs = snapshot.val() || {}; // Get the songs object, or an empty object if none exist
+        renderPlaylist();
+      }, (error) => {
+        console.error("Firebase read failed: " + error.code);
+        // Optionally, display an error message to the user
+        playlistEl.innerHTML = '<p style="text-align:center; color:red;">Error loading songs. Check console.</p>';
+      });
+    }
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = ''; // Clear previous playlist items
+      if (Object.keys(allSongs).length === 0) {
+          playlistEl.innerHTML = '<p style="text-align:center;">No songs found. Add songs to your Firebase Database.</p>';
+          return;
+      }
+      for (const id in allSongs) {
+        const song = allSongs[id];
+        const songDiv = document.createElement('div');
+        songDiv.className = 'song-item';
+
+        songDiv.innerHTML = `
+          <img src="${song.imageUrl || 'https://via.placeholder.com/50?text=No+Image'}" alt="${song.title || 'Untitled'}" />
+          <div class="title">${song.title || 'Untitled Song'}</div>
+          <button class="add-btn" data-id="${id}">Add +</button>
+        `;
+
+        playlistEl.appendChild(songDiv);
+      }
+
+      // Add event listeners to the "Add +" buttons
+      document.querySelectorAll('.add-btn').forEach(btn => {
+        btn.onclick = () => {
+          const songId = btn.getAttribute('data-id');
+          addToQueue(songId);
+        };
+      });
+    }
+
+    function addToQueue(songId) {
+      if (!allSongs[songId]) return; // Song doesn't exist
+      if (queue.includes(songId)) {
+        // alert('Song already in queue!'); // You can enable this if you want
+        return;
+      }
+      queue.push(songId);
+      renderQueue();
+      if (currentIndex === -1 && queue.length > 0) { // If nothing is playing and queue is not empty
+        currentIndex = 0;
+        playCurrent();
+      }
+    }
+
+    function renderQueue() {
+      queueListEl.innerHTML = '';
+      queue.forEach((id, index) => {
+        const song = allSongs[id];
+        if (!song) return; // Skip if song data is missing for some reason
+
+        const span = document.createElement('span');
+        span.className = 'queue-song';
+        if (index === currentIndex) {
+          span.classList.add('active');
+        }
+        span.textContent = song.title || 'Untitled Song';
+        span.onclick = () => {
+          currentIndex = index;
+          playCurrent();
+        };
+        // Option to remove from queue
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'x';
+        removeBtn.style.marginLeft = '5px';
+        removeBtn.style.cursor = 'pointer';
+        removeBtn.style.background = 'transparent';
+        removeBtn.style.border = 'none';
+        removeBtn.style.color = '#f44336';
+        removeBtn.onclick = (event) => {
+            event.stopPropagation(); // Prevent playing the song when clicking remove
+            removeFromQueue(index);
+        };
+        span.appendChild(removeBtn);
+
+        queueListEl.appendChild(span);
+      });
+    }
+
+    function removeFromQueue(indexToRemove) {
+        queue.splice(indexToRemove, 1);
+        if (currentIndex === indexToRemove) {
+            // If the currently playing song was removed
+            if (queue.length === 0) { // Queue is empty
+                audioPlayer.pause();
+                audioPlayer.src = '';
+                currentTitleEl.textContent = "Select a song to play";
+                currentImageEl.src = '';
+                currentIndex = -1;
+            } else if (currentIndex >= queue.length) { // Removed last song, move to new last
+                currentIndex = queue.length - 1;
+                playCurrent();
+            } else { // Just play the next song at the current index (which is now a different song)
+                playCurrent();
+            }
+        } else if (currentIndex > indexToRemove) {
+            // If a song before the current one was removed, adjust current index
+            currentIndex--;
+        }
+        renderQueue();
+    }
+
+
+    function playCurrent() {
+      if (currentIndex < 0 || currentIndex >= queue.length) {
+        currentTitleEl.textContent = "Select a song to play";
+        currentImageEl.src = 'https://via.placeholder.com/300?text=Player'; // Default image
+        audioPlayer.src = '';
+        // currentIndex = -1; // Let it remain -1 if queue is empty
+        renderQueue();
+        return;
+      }
+      const songId = queue[currentIndex];
+      const song = allSongs[songId];
+
+      if (!song) {
+        console.error(`Song data not found for ID: ${songId} at index ${currentIndex}`);
+        // Try to play next if possible or clear player
+        queue.splice(currentIndex, 1); // Remove problematic song
+        if (currentIndex >= queue.length && queue.length > 0) {
+            currentIndex = 0; // Loop to start if it was the last
+        }
+        if (queue.length > 0) {
+            playCurrent();
+        } else {
+            currentTitleEl.textContent = "Error: Song not found. Queue cleared.";
+            currentImageEl.src = '';
+            audioPlayer.src = '';
+            currentIndex = -1;
+        }
+        renderQueue();
+        return;
+      }
+
+      currentTitleEl.textContent = song.title || 'Untitled Song';
+      currentImageEl.src = song.imageUrl || 'https://via.placeholder.com/300?text=No+Image';
+      audioPlayer.src = song.mp3Url;
+      audioPlayer.play().catch(error => {
+        console.error("Error playing audio:", error);
+        // Handle playback error, e.g., show a message
+        currentTitleEl.textContent = "Error: Could not play " + (song.title || 'song');
+      });
+      renderQueue();
+    }
+
+    audioPlayer.onended = () => {
+      if (currentIndex < queue.length - 1) { // If there are more songs in the queue
+        currentIndex++;
+        playCurrent();
+      } else if (repeatAll && queue.length > 0) { // If repeat all is ON and queue is not empty
+        currentIndex = 0; // Go back to the first song
+        playCurrent();
+      } else {
+        // End of queue and repeat is off, or queue became empty
+        // You could clear the player or just leave the last song displayed
+        // currentIndex = -1; // Optionally reset index
+        // renderQueue(); // Update queue display if index is reset
+      }
+    };
+
+    audioPlayer.onerror = (e) => {
+        console.error("Audio player error:", e);
+        currentTitleEl.textContent = "Error playing audio. Skipping to next.";
+        // Try to play the next song
+        if (currentIndex < queue.length - 1) {
+            currentIndex++;
+            playCurrent();
+        } else if (repeatAll && queue.length > 0) {
+            currentIndex = 0;
+            playCurrent();
+        }
+    };
+
+
+    repeatToggleBtn.onclick = () => {
+      repeatAll = !repeatAll;
+      repeatToggleBtn.textContent = `Repeat All: ${repeatAll ? 'ON' : 'OFF'}`;
+      repeatToggleBtn.classList.toggle('active', repeatAll);
+    };
+
+    // Initial load of songs from Firebase
+    loadSongs();
+
+    // Set a default image for the player when nothing is loaded
+    if (!currentImageEl.src) {
+        currentImageEl.src = 'https://via.placeholder.com/300?text=Funk+Player';
+    }
+
+  </script>
+ </body>
+</html>
